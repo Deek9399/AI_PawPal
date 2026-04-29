@@ -1,0 +1,59 @@
+classDiagram
+    class Owner {
+        -name: str
+        -available_hours: dict
+        -preferences: dict
+        -pets: list~Pet~
+        +get_availability()
+        +get_constraints()
+        +add_pet(pet)
+        +remove_pet(pet)
+        +get_all_tasks()
+        +get_tasks_by_pet(pet)
+        +get_pending_tasks()
+        +get_completed_tasks()
+    }
+
+    class Pet {
+        -name: str
+        -pet_type: str
+        -breed: str
+        -age: int
+        -special_needs: list
+        -tasks: list~Task~
+        +add_task(task)
+        +remove_task(task)
+        +get_tasks()
+        +get_pending_tasks()
+        +get_completed_tasks()
+    }
+
+    class Task {
+        -description: str
+        -duration: int
+        -frequency: TaskFrequency
+        -priority: int
+        -completed: bool
+        +mark_completed()
+        +reset()
+    }
+
+    class Scheduler {
+        -owner: Owner
+        -daily_plans: dict
+        +get_all_tasks()
+        +get_tasks_by_priority()
+        +get_tasks_by_pet(pet)
+        +get_pending_tasks()
+        +get_completed_tasks()
+        +schedule_daily_plan(day)
+        +get_daily_plan(day)
+        +mark_task_completed(task)
+        +reset_task(task)
+        +get_schedule_summary(day)
+        +validate_schedule(day)
+    }
+
+    Owner "1" -- "0..*" Pet
+    Pet "1" -- "0..*" Task
+    Scheduler "1" -- "1" Owner

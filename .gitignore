@@ -1,0 +1,10 @@
+# Local secrets (never commit)
+.env
+**/.env
+
+# Python / tooling
+__pycache__/
+.venv/
+.venv_new/
+.pytest_cache/
+.DS_Store
