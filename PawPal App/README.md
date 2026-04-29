@@ -141,7 +141,7 @@ Most tests use **mocks**—no network required for CI-style runs.
 
 The end-to-end screen recording covers **Household** (including natural-language task entry), **My Schedule** (building today’s plan and metrics), **Ask PawPal** with schedule facts and handbook retrieval, and a **guardrail** refusal with no LLM call. The same flows are shown step by step in **Sample interactions** below.
 
-**Loom:** [Watch the walkthrough](https://www.loom.com/share/VIDEO_ID)
+**Loom:** [Watch the walkthrough](https://www.loom.com/share/5dc52d19884f47fda681737b8675fc31)
 
 ---
 
