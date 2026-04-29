@@ -37,6 +37,47 @@ The system splits into **three layers**:
 - **[`assets/ARCHITECTURE.md`](assets/ARCHITECTURE.md)** — Mermaid **component** diagram and **data-flow** charts (Ask PawPal, NL extraction, core scheduling).
 - **[`assets/class_diagram.mmd`](assets/class_diagram.mmd)** — UML-style **class relationships** for `Owner` / `Pet` / `Task` / `Scheduler`.
 
+### System architecture diagram (high level)
+
+The component view below matches [`assets/ARCHITECTURE.md`](assets/ARCHITECTURE.md); that file also documents data-flow charts for Ask PawPal, NL extraction, and core scheduling.
+
+```mermaid
+flowchart TB
+    subgraph ui["UI layer"]
+        ST["Streamlit app.py"]
+    end
+    subgraph core["Deterministic core"]
+        OWN["Owner"]
+        PET["Pet"]
+        TS["Task"]
+        SCH["Scheduler"]
+    end
+    subgraph ai["AI layer pawpal_ai"]
+        CLI["LLMClient Groq"]
+        IDX["KnowledgeIndex TF-IDF"]
+        GR["guardrails check_user_input"]
+        NL["nl_extract JSON tasks"]
+        ORC["orchestrator + schedule facts"]
+    end
+    subgraph data["Local data"]
+        MD["knowledge/*.md"]
+    end
+    ST --> OWN
+    ST --> SCH
+    ST --> CLI
+    ST --> GR
+    OWN --> PET
+    PET --> TS
+    SCH --> OWN
+    CLI --> ORC
+    CLI --> NL
+    IDX --> MD
+    ORC --> IDX
+    ORC --> SCH
+    ORC --> CLI
+    NL --> CLI
+```
+
 In words: **user input** hits **guardrails** first; safe prompts may call **Groq** with **retrieved chunks** and **schedule facts**; the UI never stores API keys in the repo (`.env` + optional sidebar overrides).
 
 More detail on what is deterministic vs model-driven: [`docs/AI_DECISIONS.md`](docs/AI_DECISIONS.md).
@@ -45,12 +86,16 @@ More detail on what is deterministic vs model-driven: [`docs/AI_DECISIONS.md`](d
 
 ## Setup instructions
 
+From a clone of this repository, use the **`PawPal App`** directory (contains `app.py` and `requirements.txt`).
+
 **Prerequisites:** Python **3.10+**, a free **[Groq](https://console.groq.com/)** API key for AI features (core app and tests run without live calls where mocked).
 
 ### 1. Clone and virtual environment
 
 ```powershell
-cd ai110-module2show-pawpal-starter
+git clone https://github.com/Deek9399/AI_PawPal.git
+cd AI_PawPal
+cd "PawPal App"
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
@@ -92,6 +137,15 @@ Most tests use **mocks**—no network required for CI-style runs.
 
 ---
 
+## Demo walkthrough
+
+The end-to-end screen recording covers **Household** (including natural-language task entry), **My Schedule** (building today’s plan and metrics), **Ask PawPal** with schedule facts and handbook retrieval, and a **guardrail** refusal with no LLM call. The same flows are shown step by step in **Sample interactions** below.
+
+**Loom:** [Watch the walkthrough](https://www.loom.com/share/VIDEO_ID)
+
+---
+
+
 ## Sample interactions (inputs + example outputs)
 
 *Build **today’s plan** under **My Schedule** before Ask PawPal examples so metrics and context exist. Use **demo data** on first load, or **Settings → Demo → Reload sample household**.*
@@ -124,7 +178,7 @@ What should I do first today?
 Based on your today’s plan, start with the first unchecked item in priority order—typically feeding or medication if those are marked highest priority—then work down the list. Use the checklist in My Schedule to mark items done as you go so the plan stays honest for tomorrow.
 ```
 
-*(Ensure **Let PawPal use your plan and retrieved tips** is checked so schedule facts are included.)*
+*With **Let PawPal use your plan and retrieved tips** enabled, schedule facts are included in the answer.*
 
 ### 3) Describe tasks with AI — paragraph in
 
@@ -201,9 +255,9 @@ Run: `python -m pytest` (see `tests/` for cases).
 
 Building PawPal+ reinforced that **AI is an accelerator, not an architect**: Copilot-style tools were excellent for boilerplate, tests, and Streamlit patterns, but they happily suggested structures (e.g., time-keyed dicts of tasks) that fought the **starter’s `Scheduler` model**. The useful skill was **stating invariants** (“tasks belong to pets,” “plans are ordered lists”) and rejecting suggestions that broke them.
 
-I also learned to **separate concerns for reviewers**: deterministic core in `pawpal_system.py`, AI in `pawpal_ai/`, UI in `app.py`—so a hiring manager can skim one module at a time. The hardest part was not prompts—it was **clear failure UX** (parse errors, overschedule warnings, guardrail refusals) so users never mistake the app for a vet.
+The codebase is split so the deterministic core (`pawpal_system.py`), AI layer (`pawpal_ai/`), and UI (`app.py`) stay easy to navigate. The hardest part was not prompts—it was **clear failure UX** (parse errors, overschedule warnings, guardrail refusals) so users never mistake the app for a vet.
 
-**Short reflection (assignment prompts):**
+**Topics covered:**
 
 | Topic | Summary |
 |-------|---------|
@@ -212,7 +266,7 @@ I also learned to **separate concerns for reviewers**: deterministic core in `pa
 | **Surprises in testing** | Mocked tests stayed green while live LLM output still varied; NL extraction’s “creative” JSON shapes mattered more than I expected. |
 | **AI collaboration** | **Helpful:** draft pytest for validation/conflicts. **Flawed:** time-keyed task dicts—incompatible with the starter’s `Scheduler` / pet-owned tasks. |
 
-Full write-up: **[`reflection.md`](reflection.md)** — especially **§6 Limitations, misuse, reliability surprises, and AI collaboration**, plus design and testing detail elsewhere in that file.
+**[`model_card.md`](model_card.md)** — collaboration, biases, misuse, and testing (structured). **[`reflection.md`](reflection.md)** — full narrative, including limitations, misuse, reliability, and AI collaboration (§6).
 
 ---
 
@@ -225,14 +279,18 @@ Full write-up: **[`reflection.md`](reflection.md)** — especially **§6 Limitat
 | `pawpal_ai/` | Groq client, RAG, guardrails, orchestrator, NL extract |
 | `knowledge/` | Markdown for TF-IDF retrieval |
 | `tests/` | Pytest suite |
-| `assets/` | Architecture Mermaid docs and class diagram (`.mmd`) |
+| `assets/` | Architecture diagrams, class diagram, demo screenshot ([`assets/README.md`](assets/README.md)) |
 | `docs/AI_DECISIONS.md` | Deterministic vs AI behavior |
-| `reflection.md` | Extended reflection (optional read) |
+| `docs/VIDEO_WALKTHROUGH.md` | Demo coverage (Household, schedule, Ask PawPal, guardrails) |
+| `model_card.md` | Collaboration, biases, misuse, testing |
+| `reflection.md` | Extended reflection |
 
 ---
 
 ## Demo screenshot
 
-<a href="Screenshot 2026-03-30 003147.png" target="_blank"><img src="Screenshot 2026-03-30 003147.png" title="PawPal+" width="800" alt="PawPal+ Streamlit UI" /></a>
+Main Streamlit UI (Household, My Schedule, Ask PawPal):
 
-*UI may evolve after this capture; tabs and flows above match the current code.*
+<a href="assets/demo-screenshot.png" target="_blank"><img src="assets/demo-screenshot.png" title="PawPal+" width="800" alt="PawPal+ Streamlit UI" /></a>
+
+*Static capture; live UI matches the flows described in **Sample interactions**.*
